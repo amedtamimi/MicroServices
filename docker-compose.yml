@@ -1,0 +1,67 @@
+services:
+
+  authservice:
+    build: ./AuthenticationService
+    container_name : authservice
+    ports:
+      - "49100:80"
+  
+  enterdata:
+    build: ./EnterData/
+    container_name : enterdata
+    command: sh -c "sleep 10s;  uvicorn app.main:app --host 0.0.0.0 --port 4200"
+    depends_on:
+    - authservice
+    - mysql
+    ports:
+      - "4200:4200"
+
+  
+  mysql:
+    build: ./mysql/
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: "db"
+      MYSQL_ROOT_PASSWORD: "root"
+    ports:
+      - "1433:1433"
+    
+  analytics:
+    build: ./AnalyticsService/
+    container_name: analytics
+    command: sh -c "sleep 10s;  uvicorn app.main:app --host 0.0.0.0 --port 49101"
+    ports:
+      - 49101:49101
+    depends_on:
+      - mysql
+      - mongo
+
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+  
+  
+  result:
+    build: ./ResultsService/
+    container_name: result
+    command: sh -c "sleep 10s;  uvicorn app.main:app --host 0.0.0.0 --port 49102"
+    ports:
+      - 49102:49102
+    depends_on:
+      - mongo
+      
